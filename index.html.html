@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>방송부 급식우선권 신청</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f0ede8; --surface: #faf9f7; --border: #c8c0b4; --border-dark: #8a7f72;
+    --accent: #1a1410; --accent2: #c0392b; --accent2-light: #fdf0ef;
+    --muted: #7a7068; --selected-bg: #1a1410; --selected-fg: #f0ede8;
+    --tag-bg: #e8e0d6; --success: #1e8449; --success-light: #eafaf1;
+    --font-main: 'Noto Sans KR', sans-serif; --font-mono: 'IBM Plex Mono', monospace;
+    --radius: 8px; --shadow: 0 2px 8px rgba(26,20,16,0.10); --shadow-lg: 0 6px 24px rgba(26,20,16,0.18);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: var(--font-main); background: var(--bg); color: var(--accent); min-height: 100vh; }
+
+  /* ── Header ── */
+  header {
+    background: var(--accent); color: var(--bg);
+    padding: 16px 20px; position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow-lg);
+  }
+  .logo { font-size: 19px; font-weight: 900; letter-spacing: -0.5px; }
+  .sub { font-size: 10px; font-family: var(--font-mono); color: #a09080; margin-top: 2px; }
+
+  /* ── Layout ── */
+  .container { max-width: 600px; margin: 0 auto; padding: 18px 16px 40px; display: flex; flex-direction: column; gap: 14px; }
+
+  /* ── Card ── */
+  .card { background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; padding: 18px; box-shadow: var(--shadow); }
+  .card-label {
+    font-size: 10px; font-family: var(--font-mono); font-weight: 600; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .card-label .badge {
+    background: var(--accent2); color: white; border-radius: 50%; width: 18px; height: 18px;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; flex-shrink: 0;
+  }
+
+  /* ── Grade buttons ── */
+  .grade-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .grade-btn {
+    border: 1.5px solid var(--border); background: var(--bg); border-radius: 100px;
+    padding: 6px 14px; font-family: var(--font-main); font-size: 12px; font-weight: 700;
+    cursor: pointer; color: var(--muted); transition: all 0.12s; user-select: none;
+  }
+  .grade-btn:active { transform: scale(0.97); }
+  .grade-btn.g1:hover { background: #2e4057; border-color: #2e4057; color: white; }
+  .grade-btn.g2:hover { background: #1e6b44; border-color: #1e6b44; color: white; }
+  .grade-btn.g3:hover { background: #7b2d00; border-color: #7b2d00; color: white; }
+  .grade-btn.g1.active { background: #2e4057; border-color: #2e4057; color: white; }
+  .grade-btn.g2.active { background: #1e6b44; border-color: #1e6b44; color: white; }
+  .grade-btn.g3.active { background: #7b2d00; border-color: #7b2d00; color: white; }
+  .grade-btn.clear:hover { background: #fee; color: var(--accent2); border-color: var(--accent2); }
+
+  /* ── Student grid ── */
+  .student-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+  .student-btn {
+    border: 1.5px solid var(--border); background: var(--bg); border-radius: var(--radius);
+    padding: 10px 8px; cursor: pointer; transition: all 0.13s; text-align: center;
+    font-family: var(--font-main); user-select: none;
+  }
+  .student-btn:active { transform: scale(0.95); }
+  .student-btn.selected { background: var(--selected-bg); border-color: var(--selected-bg); color: var(--selected-fg); box-shadow: var(--shadow); }
+  .student-btn .num { font-size: 9px; font-family: var(--font-mono); color: var(--muted); display: block; margin-bottom: 2px; }
+  .student-btn.selected .num { color: #a09080; }
+  .student-btn .sname { font-size: 14px; font-weight: 700; }
+
+  /* ── Chips ── */
+  .chips-wrap { min-height: 28px; display: flex; flex-wrap: wrap; gap: 5px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .chip { display: inline-flex; align-items: center; background: var(--accent); color: var(--bg); border-radius: 100px; padding: 4px 10px; font-size: 11px; font-weight: 700; }
+  .chip.g1 { background: #2e4057; }
+  .chip.g2 { background: #1e6b44; }
+  .chip.g3 { background: #7b2d00; }
+  .empty-hint { font-size: 12px; color: var(--muted); font-style: italic; padding: 2px 0; }
+
+  /* ── Field label ── */
+  .field-label { font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 8px; letter-spacing: 0.3px; }
+
+  /* ── Date row ── */
+  .date-row { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; }
+  .input-field {
+    flex: 1; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 11px 12px;
+    font-family: var(--font-main); font-size: 14px; background: var(--bg); color: var(--accent);
+    outline: none; transition: border-color 0.12s;
+  }
+  .input-field:focus { border-color: var(--accent); }
+  .btn-today {
+    border: 1.5px solid var(--border); background: var(--tag-bg); border-radius: var(--radius);
+    padding: 11px 14px; font-family: var(--font-main); font-size: 12px; font-weight: 700;
+    cursor: pointer; color: var(--muted); white-space: nowrap; transition: all 0.12s;
+  }
+  .btn-today:active { background: var(--border); }
+
+  /* ── Reason list ── */
+  .reason-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 10px; }
+  .reason-item {
+    display: flex; align-items: flex-start; gap: 10px; background: var(--bg);
+    border: 1.5px solid var(--border); border-radius: var(--radius); padding: 11px 13px;
+    cursor: pointer; transition: all 0.12s; user-select: none;
+  }
+  .reason-item:active { transform: scale(0.99); }
+  .reason-item.selected { background: var(--accent2-light); border-color: var(--accent2); color: var(--accent2); font-weight: 700; }
+  .reason-item.custom-opt.selected { background: var(--tag-bg); border-color: var(--accent); color: var(--accent); }
+  .radio-dot {
+    width: 16px; height: 16px; border: 2px solid var(--border-dark); border-radius: 50%;
+    flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; transition: all 0.12s;
+  }
+  .reason-item.selected .radio-dot { background: var(--accent2); border-color: var(--accent2); }
+  .reason-item.selected .radio-dot::after { content: ''; width: 6px; height: 6px; background: white; border-radius: 50%; }
+  .reason-item.custom-opt.selected .radio-dot { background: var(--accent); border-color: var(--accent); }
+  .reason-text { font-size: 13px; line-height: 1.4; flex: 1; }
+
+  /* ── Custom reason input ── */
+  .custom-reason-wrap { display: none; margin-top: 6px; }
+  .custom-reason-wrap.show { display: block; }
+  .input-field.custom-input { width: 100%; padding: 10px 12px; font-size: 13px; flex: none; }
+
+  /* ── Add item button ── */
+  .btn-add-item {
+    width: 100%; border: 2px dashed var(--border-dark); border-radius: var(--radius); padding: 11px;
+    font-family: var(--font-main); font-size: 13px; font-weight: 900; cursor: pointer;
+    background: var(--bg); color: var(--accent); transition: all 0.13s; margin-top: 6px;
+    letter-spacing: -0.2px;
+  }
+  .btn-add-item:hover { background: var(--accent); color: var(--bg); border-color: var(--accent); border-style: solid; }
+  .btn-add-item:active { transform: scale(0.99); }
+
+  /* ── Item list ── */
+  .item-empty { font-size: 12px; color: var(--muted); font-style: italic; text-align: center; padding: 10px 0; }
+  .item-row {
+    display: flex; align-items: flex-start; gap: 10px; background: var(--bg);
+    border: 1.5px solid var(--border); border-radius: var(--radius); padding: 11px 13px;
+    margin-bottom: 7px;
+  }
+  .item-row:last-child { margin-bottom: 0; }
+  .item-num {
+    width: 22px; height: 22px; background: var(--accent2); color: white; border-radius: 50%;
+    font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;
+  }
+  .item-info { flex: 1; }
+  .item-date { font-size: 13px; font-family: var(--font-mono); font-weight: 700; color: var(--accent); margin-bottom: 6px; }
+  .item-names { display: flex; flex-wrap: wrap; gap: 5px; }
+  .item-name-chip { background: var(--accent); color: var(--bg); border-radius: 100px; padding: 3px 9px; font-size: 11px; font-weight: 700; }
+  .item-name-chip.g1 { background: #2e4057; }
+  .item-name-chip.g2 { background: #1e6b44; }
+  .item-name-chip.g3 { background: #7b2d00; }
+  .item-no-student { font-size: 12px; color: var(--muted); font-style: italic; }
+  .item-del {
+    border: none; background: transparent; color: var(--muted); font-size: 16px; cursor: pointer;
+    padding: 2px 4px; border-radius: 4px; flex-shrink: 0; line-height: 1; transition: all 0.12s;
+  }
+  .item-del:hover { background: #fee; color: var(--accent2); }
+
+  /* ── Divider ── */
+  .divider-row { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 11px; font-family: var(--font-mono); }
+  .divider-row::before, .divider-row::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* ── Submit bar ── */
+  .submit-bar {
+    background: var(--accent); border-radius: 12px; padding: 18px 20px;
+    display: flex; align-items: center; justify-content: space-between; gap: 14px; box-shadow: var(--shadow-lg);
+  }
+  .submit-info { color: var(--bg); flex: 1; min-width: 0; }
+  .submit-info strong { font-size: 15px; font-weight: 900; display: block; margin-bottom: 2px; }
+  .submit-info .sub-info { font-size: 11px; color: #a09080; font-family: var(--font-mono); }
+  .btn-submit {
+    border: none; border-radius: 8px; padding: 13px 18px; font-family: var(--font-main);
+    font-size: 14px; font-weight: 900; cursor: pointer; background: var(--accent2); color: white;
+    transition: all 0.13s; white-space: nowrap; letter-spacing: -0.3px; flex-shrink: 0;
+  }
+  .btn-submit:active { transform: scale(0.98); }
+  .btn-submit:disabled { background: #555; cursor: not-allowed; }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--success); color: white; border-radius: 100px; padding: 12px 22px;
+    font-size: 14px; font-weight: 700; box-shadow: var(--shadow-lg); transition: transform 0.3s ease; z-index: 200;
+    white-space: nowrap; pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── Status accordion ── */
+  .status-toggle {
+    width: 100%; background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px;
+    padding: 14px 18px; font-family: var(--font-main); font-size: 13px; font-weight: 700;
+    cursor: pointer; color: var(--muted); text-align: left; display: flex; justify-content: space-between;
+    align-items: center; box-shadow: var(--shadow); transition: all 0.12s;
+  }
+  .status-toggle.open { border-radius: 12px 12px 0 0; border-bottom-color: transparent; color: var(--accent); }
+  .arrow { transition: transform 0.2s; font-size: 11px; }
+  .status-toggle.open .arrow { transform: rotate(180deg); }
+  .status-body {
+    display: none; background: var(--surface); border: 1.5px solid var(--border);
+    border-top: none; border-radius: 0 0 12px 12px; padding: 16px; box-shadow: var(--shadow);
+  }
+  .status-body.open { display: block; }
+
+  .filter-row { display: flex; gap: 6px; margin-bottom: 12px; }
+  .filter-btn {
+    border: 1.5px solid var(--border); background: var(--bg); border-radius: 100px;
+    padding: 5px 12px; font-family: var(--font-main); font-size: 12px; font-weight: 700;
+    cursor: pointer; color: var(--muted); transition: all 0.12s;
+  }
+  .filter-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
+  .app-group { background: var(--bg); border: 1.5px solid var(--border); border-radius: var(--radius); margin-bottom: 8px; overflow: hidden; }
+  .app-group:last-child { margin-bottom: 0; }
+  .app-group-hd { padding: 10px 13px; border-bottom: 1px solid var(--border); }
+  .app-group-date { font-size: 12px; font-weight: 900; font-family: var(--font-mono); }
+  .app-group-reason { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .app-group-students { padding: 9px 13px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .app-student-tag { display: flex; align-items: center; gap: 5px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 5px; padding: 4px 9px; font-size: 12px; }
+  .app-student-name { font-weight: 700; }
+  .status-badge { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 100px; }
+  .status-pending { background: #fff3cd; color: #856404; }
+  .status-issued { background: var(--success-light); color: var(--success); }
+
+  .loader-txt { text-align: center; padding: 16px; font-size: 12px; color: var(--muted); }
+  .empty-state { text-align: center; padding: 20px; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">📻 전일중 방송부 급식우선권 신청</div>
+  <div class="sub">BROADCAST CLUB · MEAL PRIORITY PASS APPLICATION(0508ver)</div>
+</header>
+
+<div class="container">
+
+  <!-- ① 학생 선택 -->
+  <div class="card">
+    <div class="card-label">① 학생 선택</div>
+
+    <div class="grade-row">
+      <button class="grade-btn g1" id="gradeBtn1" onclick="selectGrade('1')">1학년 전체</button>
+      <button class="grade-btn g2" id="gradeBtn2" onclick="selectGrade('2')">2학년 전체</button>
+      <button class="grade-btn g3" id="gradeBtn3" onclick="selectGrade('3')">3학년 전체</button>
+      <button class="grade-btn clear" onclick="clearStudents()">전체 해제</button>
+    </div>
+
+    <div class="student-grid" id="studentGrid"></div>
+
+    <div class="chips-wrap" id="chips">
+      <span class="empty-hint">학생을 선택해주세요</span>
+    </div>
+  </div>
+
+  <div class="divider-row">신청 항목 구성</div>
+
+  <!-- ② 날짜 + 사유 + 추가 -->
+  <div class="card">
+    <div class="card-label">② 날짜 · 사유 선택 후 항목 추가</div>
+
+    <div class="field-label">급식 날짜</div>
+    <div class="date-row">
+      <input class="input-field" type="date" id="datePicker" />
+      <button class="btn-today" onclick="setToday()">오늘</button>
+    </div>
+
+    <div class="field-label">사유</div>
+    <div class="reason-list" id="reasonList"></div>
+
+    <div class="custom-reason-wrap" id="customReasonWrap">
+      <input class="input-field custom-input" type="text" id="customReasonInput" placeholder="사유를 직접 입력하세요…" />
+    </div>
+
+    <button class="btn-add-item" onclick="addItem()">❤️ 급식우선권 신청 ❤️</button>
+  </div>
+
+  <!-- ③ 신청 목록 -->
+  <div class="card">
+    <div class="card-label">
+      ③ 신청 목록
+      <span class="badge" id="itemCountBadge">0</span>
+    </div>
+    <div id="itemList">
+      <div class="item-empty">② 에서 항목을 추가해주세요</div>
+    </div>
+  </div>
+
+  <!-- ④ 신청하기 -->
+  <div class="submit-bar">
+    <div class="submit-info">
+      <strong id="submitSummary">학생과 항목을 선택해주세요</strong>
+      <div class="sub-info" id="submitSub">학생 0명 · 항목 0건</div>
+    </div>
+    <button class="btn-submit" id="submitBtn" onclick="submitAll()" disabled>✅ 신청하기</button>
+  </div>
+
+  <!-- 신청 현황 (접기/펼치기) -->
+  <button class="status-toggle" onclick="toggleStatus(this)" id="statusToggle">
+    <span>📋 신청 현황 확인하기</span>
+    <span class="arrow">▼</span>
+  </button>
+  <div class="status-body" id="statusBody">
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="setFilter('all',this)">전체</button>
+      <button class="filter-btn" onclick="setFilter('신청중',this)">신청중</button>
+      <button class="filter-btn" onclick="setFilter('발급완료',this)">발급완료</button>
+    </div>
+    <div id="appListContainer"><div class="loader-txt">불러오는 중…</div></div>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── 설정 ──
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxW-jj9i5PkkTIpU4ERdo6n8NlykstlV5k7_UwVYRU1YyZsoMcm7GfsHCxP4YGvRukAwg/exec";
+
+const STUDENTS = [
+  { num: '10210', name: '박윤서' }, { num: '10213', name: '서다민' },
+  { num: '10406', name: '문소율' }, { num: '20110', name: '서승진' },
+  { num: '20220', name: '주윤서' }, { num: '20304', name: '김단우' },
+  { num: '20320', name: '이주하' }, { num: '20513', name: '윤주하' },
+  { num: '30104', name: '김승은' }, { num: '30207', name: '김하율' },
+  { num: '30219', name: '진하윤' }, { num: '30415', name: '박은서' },
+  { num: '30514', name: '안은수' },
+];
+
+const PRESET_REASONS = [
+  '방송부 점심 방송 운영',
+  '방송부 쇼미더전일 행사 준비',
+  '방송부 교내 행사 지원',
+  '방송부 점심 장비 점검',
+];
+
+// ── State ──
+let selectedStudents  = new Set();
+let selectedReasonIdx = 0;          // -1 = 직접 입력
+let applicationItems  = [];         // [{ date, reason }]
+let allAppData        = [];
+let statusFilter      = 'all';
+let statusOpen        = false;
+let gradeActive       = { '1': false, '2': false, '3': false };
+
+// ── Init ──
+function init() {
+  renderStudents();
+  renderReasons();
+  setToday();
+}
+
+// ────────────────────────
+// STUDENT SELECTION
+// ────────────────────────
+function renderStudents() {
+  document.getElementById('studentGrid').innerHTML = STUDENTS.map(s => `
+    <button class="student-btn ${selectedStudents.has(s.num) ? 'selected' : ''}" onclick="toggleStudent('${s.num}')">
+      <span class="num">${s.num}</span>
+      <span class="sname">${s.name}</span>
+    </button>`).join('');
+  renderChips();
+}
+
+function toggleStudent(num) {
+  selectedStudents.has(num) ? selectedStudents.delete(num) : selectedStudents.add(num);
+  syncGradeState(); renderStudents(); updateGradeBtns(); renderItemList(); updateSubmitBar();
+}
+
+function selectGrade(g) {
+  const gradeStudents = STUDENTS.filter(s => s.num.startsWith(g));
+  if (gradeActive[g]) {
+    gradeStudents.forEach(s => selectedStudents.delete(s.num));
+    gradeActive[g] = false;
+  } else {
+    gradeStudents.forEach(s => selectedStudents.add(s.num));
+    gradeActive[g] = true;
+  }
+  syncGradeState(); renderStudents(); updateGradeBtns(); renderItemList(); updateSubmitBar();
+}
+
+function clearStudents() {
+  selectedStudents.clear();
+  gradeActive = { '1': false, '2': false, '3': false };
+  renderStudents(); updateGradeBtns(); renderItemList(); updateSubmitBar();
+}
+
+function syncGradeState() {
+  ['1','2','3'].forEach(g => {
+    const gStudents = STUDENTS.filter(s => s.num.startsWith(g));
+    gradeActive[g] = gStudents.length > 0 && gStudents.every(s => selectedStudents.has(s.num));
+  });
+}
+
+function updateGradeBtns() {
+  ['1','2','3'].forEach(g => {
+    document.getElementById('gradeBtn' + g).classList.toggle('active', gradeActive[g]);
+  });
+}
+
+function renderChips() {
+  const area = document.getElementById('chips');
+  const sel = STUDENTS.filter(s => selectedStudents.has(s.num));
+  if (!sel.length) { area.innerHTML = '<span class="empty-hint">학생을 선택해주세요</span>'; return; }
+  area.innerHTML = sel.map(s => `<span class="chip g${s.num[0]}">${s.name}</span>`).join('');
+}
+
+// ────────────────────────
+// REASON
+// ────────────────────────
+function renderReasons() {
+  const presets = PRESET_REASONS.map((r, i) => `
+    <div class="reason-item ${selectedReasonIdx === i ? 'selected' : ''}" onclick="selectReason(${i})">
+      <div class="radio-dot"></div>
+      <span class="reason-text">${r}</span>
+    </div>`).join('');
+
+  const customOpt = `
+    <div class="reason-item custom-opt ${selectedReasonIdx === -1 ? 'selected' : ''}" onclick="selectReason(-1)">
+      <div class="radio-dot"></div>
+      <span class="reason-text">✏️ 직접 입력</span>
+    </div>`;
+
+  document.getElementById('reasonList').innerHTML = presets + customOpt;
+}
+
+function selectReason(i) {
+  selectedReasonIdx = i;
+  renderReasons();
+  const wrap = document.getElementById('customReasonWrap');
+  if (i === -1) { wrap.classList.add('show'); document.getElementById('customReasonInput').focus(); }
+  else { wrap.classList.remove('show'); }
+}
+
+function getCurrentReason() {
+  if (selectedReasonIdx === -1) return document.getElementById('customReasonInput').value.trim();
+  return PRESET_REASONS[selectedReasonIdx] || '';
+}
+
+// ────────────────────────
+// DATE
+// ────────────────────────
+function setToday() {
+  const t = new Date();
+  const y = t.getFullYear(), m = String(t.getMonth()+1).padStart(2,'0'), d = String(t.getDate()).padStart(2,'0');
+  document.getElementById('datePicker').value = `${y}-${m}-${d}`;
+}
+
+function getDateStr(raw) {
+  if (!raw) return '';
+  const d = new Date(raw);
+  if (isNaN(d)) return raw;
+  const dow = ['일','월','화','수','목','금','토'][d.getDay()];
+  return `${d.getFullYear()}. ${d.getMonth()+1}. ${d.getDate()}.(${dow})`;
+}
+
+// ────────────────────────
+// APPLICATION ITEMS
+// ────────────────────────
+function addItem() {
+  const date   = document.getElementById('datePicker').value;
+  const reason = getCurrentReason();
+  if (!date)   { showToast('날짜를 선택해주세요.', '#856404'); return; }
+  if (!reason) { showToast('사유를 입력해주세요.', '#856404'); return; }
+  if (applicationItems.find(it => it.date === date && it.reason === reason)) {
+    showToast('이미 추가된 항목입니다.', '#856404'); return;
+  }
+  applicationItems.push({ date, reason });
+  renderItemList();
+  updateSubmitBar();
+
+  // 날짜를 하루 뒤로 자동 이동 (연속 추가 편의)
+  const next = new Date(date);
+  next.setDate(next.getDate() + 1);
+  const ny = next.getFullYear(), nm = String(next.getMonth()+1).padStart(2,'0'), nd = String(next.getDate()).padStart(2,'0');
+  document.getElementById('datePicker').value = `${ny}-${nm}-${nd}`;
+}
+
+function removeItem(idx) {
+  applicationItems.splice(idx, 1);
+  renderItemList();
+  updateSubmitBar();
+}
+
+function renderItemList() {
+  const list = document.getElementById('itemList');
+  document.getElementById('itemCountBadge').textContent = applicationItems.length;
+  if (!applicationItems.length) { list.innerHTML = '<div class="item-empty">위에서 날짜·사유를 선택하고 신청하세요</div>'; return; }
+  const selStudents = STUDENTS.filter(s => selectedStudents.has(s.num));
+  list.innerHTML = applicationItems.map((it, idx) => {
+    const nameChips = selStudents.length
+      ? selStudents.map(s => `<span class="item-name-chip g${s.num[0]}">${s.name}</span>`).join('')
+      : '<span class="item-no-student">학생을 선택해주세요</span>';
+    return `
+    <div class="item-row">
+      <div class="item-num">${idx + 1}</div>
+      <div class="item-info">
+        <div class="item-date">${getDateStr(it.date)}</div>
+        <div class="item-names">${nameChips}</div>
+      </div>
+      <button class="item-del" onclick="removeItem(${idx})" title="삭제">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ────────────────────────
+// SUBMIT BAR
+// ────────────────────────
+function updateSubmitBar() {
+  const sc = selectedStudents.size, ic = applicationItems.length;
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = !(sc > 0 && ic > 0);
+  if (sc === 0 || ic === 0) {
+    document.getElementById('submitSummary').textContent = '학생과 항목을 선택해주세요';
+    document.getElementById('submitSub').textContent = `학생 ${sc}명 · 항목 ${ic}건`;
+  } else {
+    document.getElementById('submitSummary').textContent = `총 ${sc * ic}건 신청 예정`;
+    document.getElementById('submitSub').textContent = `학생 ${sc}명 × 항목 ${ic}건`;
+  }
+}
+
+// ────────────────────────
+// SUBMIT
+// ────────────────────────
+async function submitAll() {
+  const students = STUDENTS.filter(s => selectedStudents.has(s.num));
+  if (!students.length || !applicationItems.length) return;
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = '신청 중…';
+
+  // 학생 × 항목 전체 페어 생성
+  const payload = [];
+  applicationItems.forEach(item => {
+    students.forEach(s => payload.push({ date: item.date, student: `${s.num} ${s.name}`, reason: item.reason }));
+  });
+
+  try {
+    if (!SCRIPT_URL.includes('붙여넣으세요')) {
+      await fetch(SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ action: 'apply', data: JSON.stringify(payload) })
+      });
+    } else {
+      await new Promise(r => setTimeout(r, 600));
+    }
+
+    const count = payload.length;
+    // 초기화
+    selectedStudents.clear(); gradeActive = { '1': false, '2': false, '3': false };
+    applicationItems = [];
+    renderStudents(); updateGradeBtns(); renderItemList(); updateSubmitBar(); setToday();
+
+    showToast(`🎉 ${count}건 신청 완료!`, '#1e8449');
+    openStatus();
+
+  } catch(e) {
+    showToast('신청 실패. 다시 시도해주세요.', '#c0392b');
+  }
+  btn.textContent = '✅ 신청하기';
+  updateSubmitBar();
+}
+
+// ────────────────────────
+// TOAST
+// ────────────────────────
+let toastTimer = null;
+function showToast(msg, color) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.background = color || '#1e8449';
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ────────────────────────
+// STATUS SECTION
+// ────────────────────────
+function toggleStatus(btn) {
+  statusOpen = !statusOpen;
+  btn.classList.toggle('open', statusOpen);
+  document.getElementById('statusBody').classList.toggle('open', statusOpen);
+  if (statusOpen) loadAppList();
+}
+
+function openStatus() {
+  if (!statusOpen) {
+    statusOpen = true;
+    document.getElementById('statusToggle').classList.add('open');
+    document.getElementById('statusBody').classList.add('open');
+    loadAppList();
+  }
+  setTimeout(() => document.getElementById('statusToggle').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+}
+
+function setFilter(f, btn) {
+  statusFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAppList();
+}
+
+async function loadAppList() {
+  document.getElementById('appListContainer').innerHTML = '<div class="loader-txt">불러오는 중…</div>';
+  try {
+    if (SCRIPT_URL.includes('붙여넣으세요')) { allAppData = []; renderAppList(); return; }
+    const res = await fetch(SCRIPT_URL + '?action=applications&t=' + Date.now());
+    allAppData = await res.json();
+    allAppData.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    renderAppList();
+  } catch(e) {
+    document.getElementById('appListContainer').innerHTML = '<div class="empty-state">불러오지 못했습니다.</div>';
+  }
+}
+
+function renderAppList() {
+  const container = document.getElementById('appListContainer');
+  const filtered = statusFilter === 'all' ? allAppData : allAppData.filter(a => a.status === statusFilter);
+  if (!filtered.length) { container.innerHTML = `<div class="empty-state">내역이 없습니다.</div>`; return; }
+
+  const groups = {};
+  filtered.forEach(item => {
+    const k = `${item.date}||${item.reason}`;
+    if (!groups[k]) groups[k] = { date: item.date, reason: item.reason, items: [] };
+    groups[k].items.push(item);
+  });
+
+  container.innerHTML = Object.keys(groups).sort((a,b) => b.localeCompare(a)).map(k => {
+    const g = groups[k];
+    return `<div class="app-group">
+      <div class="app-group-hd">
+        <div class="app-group-date">${getDateStr(g.date)}</div>
+        <div class="app-group-reason">${g.reason}</div>
+      </div>
+      <div class="app-group-students">
+        ${g.items.map(it => {
+          const parts = it.student.split(' ');
+          const name = parts[1] || parts[0];
+          const isIssued = it.status === '발급완료';
+          return `<div class="app-student-tag">
+            <span class="app-student-name">${name}</span>
+            <span class="status-badge ${isIssued ? 'status-issued' : 'status-pending'}">${isIssued ? '✓발급' : '신청중'}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+init();
+</script>
+</body>
+</html>
