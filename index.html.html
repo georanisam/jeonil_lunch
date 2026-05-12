@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>방송부 급식우선권 신청</title>
+<title>방송부 급식우선권 신청 (v2) </title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -363,6 +363,57 @@
   .loader-txt { text-align: center; padding: 32px 16px; font-size: 13px; color: var(--muted); }
   .empty-state { text-align: center; padding: 32px 20px; color: var(--muted); font-size: 13px; }
   .spinner { display: inline-block; font-size: 22px; animation: spin 0.7s linear infinite; }
+
+  /* ── 중복 확인 모달 ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(26,20,16,0.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 300; padding: 20px;
+    animation: fadeIn 0.15s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal-box {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 16px; padding: 24px 22px; max-width: 380px; width: 100%;
+    box-shadow: var(--shadow-lg);
+    animation: slideUp 0.18s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-icon { font-size: 26px; margin-bottom: 8px; }
+  .modal-title { font-size: 17px; font-weight: 900; margin-bottom: 10px; color: var(--accent); }
+  .modal-desc { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 4px; }
+  .dup-list {
+    background: var(--bg); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 11px 14px;
+    margin: 12px 0; display: flex; flex-direction: column; gap: 7px;
+  }
+  .dup-item {
+    font-size: 13px; font-weight: 700; color: var(--accent);
+    line-height: 1.5; display: flex; align-items: flex-start; gap: 6px;
+  }
+  .dup-item .dup-dot { color: var(--accent2); flex-shrink: 0; }
+  .dup-item .dup-date { font-family: var(--font-mono); color: var(--muted); font-weight: 600; }
+  .modal-warning {
+    font-size: 12px; color: var(--muted); line-height: 1.6;
+    background: var(--accent2-light); border: 1px solid #f1b8b1;
+    border-radius: 6px; padding: 9px 12px;
+  }
+  .modal-btn-row { display: flex; gap: 10px; margin-top: 18px; }
+  .modal-btn-cancel {
+    flex: 1; border: 1.5px solid var(--border); background: var(--bg);
+    border-radius: var(--radius); padding: 13px; font-family: var(--font-main);
+    font-size: 14px; font-weight: 700; cursor: pointer; color: var(--muted);
+    transition: all 0.12s;
+  }
+  .modal-btn-cancel:hover { background: var(--tag-bg); border-color: var(--border-dark); color: var(--accent); }
+  .modal-btn-proceed {
+    flex: 1; border: none; background: var(--accent2);
+    border-radius: var(--radius); padding: 13px; font-family: var(--font-main);
+    font-size: 14px; font-weight: 900; cursor: pointer; color: white;
+    transition: all 0.12s;
+  }
+  .modal-btn-proceed:hover { background: #a93226; }
+  .modal-btn-proceed:active { transform: scale(0.98); }
 </style>
 </head>
 <body>
@@ -445,7 +496,7 @@
 
     <div class="status-toolbar">
       <h2>신청 · 발급 현황</h2>
-      <button class="btn-refresh" id="refreshBtn" onclick="loadStatusData()">
+      <button class="btn-refresh" id="refreshBtn" onclick="loadStatusData(true)">
         <span class="refresh-icon">↻</span> 새로고침
       </button>
     </div>
@@ -474,6 +525,21 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- ── 중복 신청 확인 모달 ── -->
+<div id="dupModal" class="modal-overlay" style="display:none;" onclick="handleModalOverlayClick(event)">
+  <div class="modal-box">
+    <div class="modal-icon">⚠️</div>
+    <div class="modal-title">중복된 신청이 있어요</div>
+    <div class="modal-desc">다음 학생은 같은 날짜에 이미 신청한 내역이 있습니다.</div>
+    <div class="dup-list" id="dupList"></div>
+    <div class="modal-warning">중복 신청 시 같은 학생의 같은 날짜 항목이 2건으로 기록됩니다. 그래도 신청을 진행하시겠습니까?</div>
+    <div class="modal-btn-row">
+      <button class="modal-btn-cancel" onclick="closeDupModal()">취소</button>
+      <button class="modal-btn-proceed" onclick="proceedSubmit()">그래도 신청</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxpHL-jdI8i2DfgJMS--1y0E2Qe3VXVdxpstR1B_uIHLmI8HhkL0k-NPWTQu0kRgpGsVA/exec";
@@ -506,7 +572,7 @@ function switchTab(tab, btn) {
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById(tab + 'Tab').classList.add('active');
-  if (tab === 'status' && !statusLoaded) loadStatusData();
+  if (tab === 'status') loadStatusData(false); // 캐시 있으면 즉시, 없으면 대기
 }
 
 function init() {
@@ -525,6 +591,7 @@ function init() {
     // blur 시에도 값이 있으면 자동 추가
     if (customInput.value.trim()) submitCustomReason();
   });
+  prefetchStatusData(); // 백그라운드에서 데이터 미리 로드
 }
 
 function escapeHtml(str) {
@@ -653,22 +720,168 @@ function updateSubmitBar() {
   document.getElementById('submitSummary').textContent = (sc && ic) ? `총 ${sc*ic}건 신청 예정` : '학생과 항목을 선택해주세요';
   document.getElementById('submitSub').textContent = `학생 ${sc}명 · 항목 ${ic}건`;
 }
+// ──────────────────────────────────────────────────────
+// 데이터 캐시 / 프리페치
+// ──────────────────────────────────────────────────────
+
+/**
+ * prefetchPromise: 현재 진행 중인 fetch Promise를 공유합니다.
+ * 현황탭과 중복체크가 같은 Promise를 바라봐서 중복 요청을 막습니다.
+ */
+let prefetchPromise = null;
+
+/** 서버에서 데이터를 가져와 allStatusData에 캐시하는 핵심 함수 */
+async function _fetchAndCacheData() {
+  const [appsRes, recsRes] = await Promise.all([
+    fetch(SCRIPT_URL + '?action=applications&t=' + Date.now()),
+    fetch(SCRIPT_URL + '?action=records&t=' + Date.now())
+  ]);
+  const apps = await appsRes.json();
+  const recs  = await recsRes.json();
+
+  const issuedAppKeys = new Set(
+    apps.filter(a => a.status === '발급완료')
+        .map(a => `${a.date}||${a.student}||${a.reason}`)
+  );
+  const teacherDirectItems = recs
+    .filter(r => !issuedAppKeys.has(`${r.date}||${r.student}||${r.reason}`))
+    .map(r => ({ date: r.date, student: r.student, reason: r.reason, status: '발급완료', source: 'teacher' }));
+
+  allStatusData = [...apps, ...teacherDirectItems];
+  allStatusData.sort((a, b) => (b.date||'').localeCompare(a.date||''));
+  statusLoaded = true;
+
+  // 뱃지 조용히 업데이트
+  const pendingCnt = apps.filter(a => a.status === '신청중').length;
+  const badge = document.getElementById('pendingBadge');
+  badge.textContent = pendingCnt;
+  badge.style.display = pendingCnt > 0 ? 'inline-flex' : 'none';
+}
+
+/**
+ * 프리페치 요청.
+ * - 캐시 유효 → 즉시 resolve
+ * - fetch 진행 중 → 같은 Promise 반환 (요청 추가 없음)
+ * - 둘 다 아님 → 새로 fetch 시작
+ */
+function prefetchStatusData() {
+  if (statusLoaded) return Promise.resolve();
+  if (!prefetchPromise) {
+    prefetchPromise = _fetchAndCacheData().catch(() => {
+      prefetchPromise = null; // 실패 시 다음 시도를 위해 초기화
+    });
+  }
+  return prefetchPromise;
+}
+
+/** 캐시 무효화 (신청 완료, 수동 새로고침 시 호출) */
+function invalidateCache() {
+  statusLoaded = false;
+  prefetchPromise = null;
+}
+
+// ──────────────────────────────────────────────────────
+// 신청하기
+// ──────────────────────────────────────────────────────
+let pendingPayload = null; // 중복 확인 후 신청 대기 중인 데이터
+
 async function submitAll() {
   const students = STUDENTS.filter(s => selectedStudents.has(s.num));
   if (!students.length || !applicationItems.length) return;
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+
+  const payload = [];
+  applicationItems.forEach(item => students.forEach(s =>
+    payload.push({ date: item.date, student: `${s.num} ${s.name}`, reason: item.reason })
+  ));
+
+  // 캐시 대기: 이미 로드됐으면 즉시, 프리페치 중이면 완료까지 대기
+  if (!statusLoaded) {
+    btn.textContent = '확인 중…';
+    await prefetchStatusData();
+  }
+
+  // 중복 체크 — 캐시만 사용, 추가 서버 요청 없음
+  if (statusLoaded) {
+    const existingPairs = new Set(allStatusData.map(a => `${a.date}||${a.student}`));
+    const dupMap = {};
+    payload.forEach(p => {
+      if (existingPairs.has(`${p.date}||${p.student}`)) {
+        if (!dupMap[p.date]) dupMap[p.date] = new Set();
+        const name = p.student.split(' ')[1] || p.student.split(' ')[0];
+        dupMap[p.date].add(name);
+      }
+    });
+    if (Object.keys(dupMap).length > 0) {
+      pendingPayload = payload;
+      showDupModal(dupMap);
+      btn.textContent = '✅ 신청하기';
+      updateSubmitBar();
+      return;
+    }
+  }
+
+  btn.textContent = '신청 중…';
+  await doSubmit(payload);
+  btn.textContent = '✅ 신청하기';
+  updateSubmitBar();
+}
+
+/** 중복 모달 표시 */
+function showDupModal(dupMap) {
+  const listHtml = Object.keys(dupMap).sort().map(date => {
+    const names = [...dupMap[date]].join(', ');
+    return `<div class="dup-item">
+      <span class="dup-dot">•</span>
+      <span><span class="dup-date">${getDateStr(date)}</span> — ${names}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('dupList').innerHTML = listHtml;
+  document.getElementById('dupModal').style.display = 'flex';
+}
+
+/** 모달 취소 */
+function closeDupModal() {
+  document.getElementById('dupModal').style.display = 'none';
+  pendingPayload = null;
+}
+
+/** 모달 배경 클릭 시 닫기 */
+function handleModalOverlayClick(e) {
+  if (e.target === document.getElementById('dupModal')) closeDupModal();
+}
+
+/** 그래도 신청 — 중복 무시하고 제출 */
+async function proceedSubmit() {
+  document.getElementById('dupModal').style.display = 'none';
+  if (!pendingPayload) return;
+  const payload = pendingPayload;
+  pendingPayload = null;
   const btn = document.getElementById('submitBtn');
   btn.disabled = true; btn.textContent = '신청 중…';
-  const payload = [];
-  applicationItems.forEach(item => students.forEach(s => payload.push({ date: item.date, student: `${s.num} ${s.name}`, reason: item.reason })));
+  await doSubmit(payload);
+  btn.textContent = '✅ 신청하기';
+  updateSubmitBar();
+}
+
+/** 실제 서버 전송 */
+async function doSubmit(payload) {
   try {
-    await fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: new URLSearchParams({ action:'apply', data: JSON.stringify(payload) }) });
-    selectedStudents.clear(); gradeActive={'1':false,'2':false,'3':false}; applicationItems=[];
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ action: 'apply', data: JSON.stringify(payload) })
+    });
+    selectedStudents.clear(); gradeActive = {'1':false,'2':false,'3':false}; applicationItems = [];
     renderStudents(); updateGradeBtns(); renderItemList(); updateSubmitBar(); setToday();
     showToast(`🎉 ${payload.length}건 신청 완료!`, '#1e8449');
-    statusLoaded = false;
+    invalidateCache(); // 캐시 무효화 → 현황탭 재진입 시 새로 로드
     document.getElementById('tabBtnStatus').click();
-  } catch(e) { showToast('신청 실패. 다시 시도해주세요.', '#c0392b'); }
-  btn.textContent = '✅ 신청하기'; updateSubmitBar();
+  } catch(e) {
+    showToast('신청 실패. 다시 시도해주세요.', '#c0392b');
+  }
 }
 
 // ──────────────────────────────────────────────────────
@@ -685,45 +898,37 @@ function showToast(msg, color) {
 // ──────────────────────────────────────────────────────
 // 현황 탭
 // ──────────────────────────────────────────────────────
-async function loadStatusData() {
+
+/**
+ * 현황 탭 데이터 로드.
+ * @param {boolean} forceRefresh - true: 새로고침 버튼 (캐시 무시하고 서버 재조회)
+ *                                 false: 탭 첫 진입 (캐시 있으면 즉시 렌더)
+ */
+async function loadStatusData(forceRefresh = false) {
   const btn = document.getElementById('refreshBtn');
   btn.classList.add('spinning');
-  document.getElementById('statusListContainer').innerHTML = `<div class="loader-txt"><span class="spinner">↻</span><br>불러오는 중…</div>`;
   document.getElementById('noticeArea').innerHTML = '';
   document.getElementById('statusSummary').style.display = 'none';
 
+  // 캐시가 유효하고 강제 갱신이 아니면 → 즉시 렌더 (서버 요청 없음)
+  if (statusLoaded && !forceRefresh) {
+    renderStatusList();
+    btn.classList.remove('spinning');
+    return;
+  }
+
+  // 강제 갱신이면 캐시 무효화 후 새로 fetch
+  if (forceRefresh) invalidateCache();
+
+  document.getElementById('statusListContainer').innerHTML =
+    `<div class="loader-txt"><span class="spinner">↻</span><br>불러오는 중…</div>`;
+
   try {
-    const [appsRes, recsRes] = await Promise.all([
-      fetch(SCRIPT_URL + '?action=applications&t=' + Date.now()),
-      fetch(SCRIPT_URL + '?action=records&t=' + Date.now())
-    ]);
-    const apps = await appsRes.json();
-    const recs = await recsRes.json();
-
-    const issuedAppKeys = new Set(
-      apps.filter(a => a.status === '발급완료')
-          .map(a => `${a.date}||${a.student}||${a.reason}`)
-    );
-
-    const teacherDirectItems = recs
-      .filter(r => !issuedAppKeys.has(`${r.date}||${r.student}||${r.reason}`))
-      .map(r => ({
-        date: r.date, student: r.student, reason: r.reason,
-        status: '발급완료', source: 'teacher'
-      }));
-
-    allStatusData = [ ...apps, ...teacherDirectItems ];
-    allStatusData.sort((a, b) => (b.date||'').localeCompare(a.date||''));
-    statusLoaded = true;
-
-    const pendingCnt = apps.filter(a => a.status === '신청중').length;
-    const badge = document.getElementById('pendingBadge');
-    badge.textContent = pendingCnt;
-    badge.style.display = pendingCnt > 0 ? 'inline-flex' : 'none';
-
+    await prefetchStatusData(); // 이미 fetch 중이면 같은 Promise 재사용
     renderStatusList();
   } catch(e) {
-    document.getElementById('statusListContainer').innerHTML = '<div class="empty-state" style="color:red;">❌ 불러오지 못했습니다. 새로고침을 눌러보세요.</div>';
+    document.getElementById('statusListContainer').innerHTML =
+      '<div class="empty-state" style="color:red;">❌ 불러오지 못했습니다. 새로고침을 눌러보세요.</div>';
   }
   btn.classList.remove('spinning');
 }
